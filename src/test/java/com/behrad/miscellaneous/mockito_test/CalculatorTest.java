@@ -1,6 +1,7 @@
 package com.behrad.miscellaneous.mockito_test;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -10,38 +11,53 @@ import org.mockito.*;
 
 import java.util.stream.Stream;
 
+import static org.mockito.Mockito.verify;
+
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CalculatorTest {
 
     @Mock
-    Calculator.Display display;
-
-    @InjectMocks
-    Calculator calculator;
+    Calculator calculatorMocked;
 
     MockedStatic<Calculator> calculatorMockedStatic;
 
     @BeforeAll
     void setup() {
         calculatorMockedStatic = Mockito.mockStatic(Calculator.class);
-        MockitoAnnotations.initMocks(this);
+        MockitoAnnotations.openMocks(this);
     }
 
     @ParameterizedTest
     @MethodSource("generateNumbers")
-    void add(int number1, int number2, int result) {
+    void inlineMockAdd(int number1, int number2, int result) {
         Calculator mock = Mockito.mock(Calculator.class);
         Mockito.when(mock.add(1, 2)).thenReturn(3);
         Assertions.assertEquals(result, mock.add(number1, number2));
-        Mockito.verify(mock).add(1, 2);
     }
 
     @ParameterizedTest
     @MethodSource("generateNumbers")
-    void staticAdd(int number1, int number2, int result) {
+    void mockAdd(int number1, int number2, int result) {
+        Mockito.when(calculatorMocked.add(1, 2)).thenReturn(3);
+        Assertions.assertEquals(result, calculatorMocked.add(number1, number2));
+    }
+
+    @ParameterizedTest
+    @MethodSource("generateNumbers")
+    void mockStaticAdd(int number1, int number2, int result) {
         calculatorMockedStatic.when(() -> Calculator.staticAdd(1, 2)).thenReturn(3);
-        Assertions.assertEquals(result, Calculator.staticAdd(number1, number2));
+        int r = Calculator.staticAdd(number1, number2);
+        Assertions.assertEquals(result, r);
+        Assumptions.assumeTrue(result == r);
         calculatorMockedStatic.verify(() -> Calculator.staticAdd(1, 2));
+    }
+
+    @ParameterizedTest
+    @MethodSource("generateNumbers")
+    void spyAdd(int number1, int number2, int result) {
+        Calculator mock = Mockito.spy(calculatorMocked);
+        Mockito.when(mock.add(1, 2)).thenReturn(3);
+        Assertions.assertEquals(result, mock.add(number1, number2));
     }
 
     static Stream<Arguments> generateNumbers() {
